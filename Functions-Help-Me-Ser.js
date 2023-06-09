@@ -1,5 +1,10 @@
 const fs = require("fs")
 
+console.log("Origin: ", typeof process.env.ORIGIN)
+console.log("Destination: ", typeof process.env.DESTINATION)
+console.log("Customer Email: ", typeof process.env.CUSTOMER_EMAIL)
+console.log("Verified Sender: ", typeof process.env.VERIFIED_SENDER)
+
 // Loads environment variables from .env.enc file (if it exists)
 require("@chainlink/env-enc").config()
 
@@ -34,10 +39,10 @@ const requestConfig = {
   walletPrivateKey: process.env["PRIVATE_KEY"],
   // args (string only array) can be accessed within the source code with `args[index]` (ie: args[0]).
   // args in sequence are: UserID, NFTID, Origin, Destination, Customer Email, Verified Sender
-  args: ["David", "40000", "New York", "Washington DC", process.env.CUSTOMER_EMAIL, process.env.VERIFIED_SENDER],
+  args: ["David", "frustramatic@gmail.com", "40000", "0", "0"],
   gasLimit: process.env.GAS_LIMIT || 3000000, // Set a fallback gas limit
   // expected type of the returned value
-  expectedReturnType: ReturnType.Buffer, // Change to ReturnType.Buffer
+  expectedReturnType: ReturnType.int256, // Change to ReturnType.Buffer
   // Secrets can be accessed within the source code with `secrets.varName` (ie: secrets.apiKey). The secrets object can only contain string values.
   secrets: {
     // DON level API Keys

@@ -1,12 +1,10 @@
 const { getDecodedResultLog, getRequestConfig } = require("../../FunctionsSandboxLibrary")
 const { generateRequest } = require("./buildRequestJSON")
-const { networks } = require("../../networks")
+const { VERIFICATION_BLOCK_CONFIRMATIONS, networkConfig } = require("../../network-config")
 const utils = require("../utils")
 const chalk = require("chalk")
 const { deleteGist } = require("../utils/github")
 const { RequestStore } = require("../utils/artifact")
-const path = require("path")
-const process = require("process")
 
 task("functions-request", "Initiates a request from a Functions client contract")
   .addParam("contract", "Address of the client contract to call")
@@ -24,12 +22,6 @@ task("functions-request", "Initiates a request from a Functions client contract"
     types.int
   )
   .addOptionalParam("requestgas", "Gas limit for calling the executeRequest function", 1_500_000, types.int)
-  .addOptionalParam(
-    "configpath",
-    "Path to Functions request config file",
-    `${__dirname}/../../Functions-request-config.js`,
-    types.string
-  )
   .setAction(async (taskArgs, hre) => {
     // A manual gas limit is required as the gas limit estimated by Ethers is not always accurate
     const overrides = {
@@ -51,10 +43,10 @@ task("functions-request", "Initiates a request from a Functions client contract"
     }
 
     // Attach to the required contracts
-    const clientContractFactory = await ethers.getContractFactory("FunctionsConsumer")
+    const clientContractFactory = await ethers.getContractFactory("NFTDeliveryTracker")
     const clientContract = clientContractFactory.attach(contractAddr)
     const OracleFactory = await ethers.getContractFactory("contracts/dev/functions/FunctionsOracle.sol:FunctionsOracle")
-    const oracle = await OracleFactory.attach(networks[network.name]["functionsOracleProxy"])
+    const oracle = await OracleFactory.attach(networkConfig[network.name]["functionsOracleProxy"])
     const registryAddress = await oracle.getRegistry()
     const RegistryFactory = await ethers.getContractFactory(
       "contracts/dev/functions/FunctionsBillingRegistry.sol:FunctionsBillingRegistry"
@@ -77,9 +69,7 @@ task("functions-request", "Initiates a request from a Functions client contract"
       throw Error(`Consumer contract ${contractAddr} is not registered to use subscription ${subscriptionId}`)
     }
 
-    const unvalidatedRequestConfig = require(path.isAbsolute(taskArgs.configpath)
-      ? taskArgs.configpath
-      : path.join(process.cwd(), taskArgs.configpath))
+    const unvalidatedRequestConfig = require("../../Functions-Help-Me-Ser.js")
     const requestConfig = getRequestConfig(unvalidatedRequestConfig)
 
     const simulatedSecretsURLBytes = `0x${Buffer.from(
@@ -197,16 +187,14 @@ task("functions-request", "Initiates a request from a Functions client contract"
 
         spinner.succeed(`Request ${requestId} fulfilled! Data has been written on-chain.\n`)
         if (result !== "0x") {
-          console.log(
-            `Response returned to client contract represented as a hex string: ${result}\n${getDecodedResultLog(
-              require("../../Functions-request-config"),
-              result
-            )}`
-          )
+          const clientContract = await clientContractFactory.attach(NFTDeliveryTrackerAddress)
+          const decodedResult = await clientContract.getDecodedResult(result) // Assuming there's a function to decode the result in the contract
+          console.log(`Response: ${decodedResult}`)
         }
         if (err !== "0x") {
           console.log(`Error message returned to client contract: "${Buffer.from(err.slice(2), "hex")}"\n`)
         }
+
         ocrResponseEventReceived = true
         await store.update(requestId, { status: "complete", result })
 
@@ -249,24 +237,16 @@ task("functions-request", "Initiates a request from a Functions client contract"
         }
       )
 
-      let requestTx
-      try {
-        // Initiate the on-chain request after all listeners are initialized
-        requestTx = await clientContract.executeRequest(
-          request.source,
-          request.secrets ?? [],
-          request.args ?? [],
-          subscriptionId,
-          gasLimit,
-          overrides
-        )
-      } catch (error) {
-        // If the request fails, ensure the encrypted secrets Gist is deleted
-        if (doGistCleanup) {
-          await deleteGist(process.env["GITHUB_API_TOKEN"], request.secretsURLs[0].slice(0, -4))
-        }
-        throw error
-      }
+      // Initiate the on-chain request after all listeners are initialized
+      console.log(`\nRequesting new data for NFTDeliveryTracker contract ${contractAddr} on network ${network.name}`)
+      const requestTx = await clientContract.executeRequest(
+        request.source,
+        request.secrets ?? [],
+        request.args ?? [],
+        subscriptionId,
+        gasLimit,
+        overrides
+      )
       spinner.start("Waiting 2 blocks for transaction to be confirmed...")
       const requestTxReceipt = await requestTx.wait(2)
       spinner.info(
