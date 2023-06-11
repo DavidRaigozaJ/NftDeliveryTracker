@@ -1,5 +1,31 @@
 # Chainlink Functions Starter Kit
 
+## Protocol for deliverable products using chainlink
+
+the idea is to use google map matrix api and twilio, then we will build a system of tracking-staking a Any brand coin that will be staked during the delivery time, or more time, depending on the user needs
+
+## BrandCoin deployed on sepolia 
+
+npx hardhat functions-deploy-brandcoin --network mumbai
+
+BrandCoin contract deployed to: 
+0x2FaB2781c4226304E2c4AB6AdCaE0ae34E1864d4
+## NFT Delivery tracker deployed on mumbai
+
+npx hardhat functions-deploy-nft-delivery-tracker --network mumbai --brandcoin-contract 0x2FaB2781c4226304E2c4AB6AdCaE0ae34E1864d4
+
+NFTDeliveryTracker contract deployed at: 0x058bc1Ddb7D84146038feec861a21e597E31FB99 on Mumbai
+
+## Approve Spender
+npx hardhat functions-approve-spender --network mumbai --client-contract 0x058bc1Ddb7D84146038feec861a21e597E31FB99 --brandcoin-contract 0x2FaB2781c4226304E2c4AB6AdCaE0ae34E1864d4
+
+## SubscriptionId
+
+ID: 1685
+
+npx hardhat functions-sub-info --network mumbai --subid 1685
+
+
 - [Chainlink Functions Starter Kit](#chainlink-functions-starter-kit)
 - [Overview](#overview)
   - [Supported Networks](#supported-networks)
